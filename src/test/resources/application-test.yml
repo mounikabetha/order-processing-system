@@ -5,4 +5,4 @@ spring:
   flyway:
     enabled: false
   cache:
-    type: none
+    type: redis
