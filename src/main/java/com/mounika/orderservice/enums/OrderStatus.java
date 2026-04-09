@@ -14,7 +14,7 @@ public enum OrderStatus {
     REFUNDED;
 
     private static final Map<OrderStatus, Set<OrderStatus>> VALID_TRANSITIONS = Map.of(
-            CREATED, Set.of(PAYMENT_PENDING, CANCELLED),
+            CREATED, Set.of(PAYMENT_PENDING, PAID, CANCELLED),
             PAYMENT_PENDING, Set.of(PAID, PAYMENT_FAILED, CANCELLED),
             PAID, Set.of(SHIPPED, REFUNDED),
             SHIPPED, Set.of(DELIVERED),

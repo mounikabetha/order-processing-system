@@ -16,6 +16,8 @@ import org.springframework.kafka.retrytopic.DltStrategy;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import com.mounika.orderservice.enums.OrderStatus;
+import com.mounika.orderservice.enums.EventType;
 
 @Component
 @RequiredArgsConstructor
@@ -67,13 +69,17 @@ public class PaymentConsumer {
         log.info("Processing payment for order: orderId={}, amount={}",
                 event.getOrderId(), event.getTotalAmount());
 
-        // Simulate payment processing
-        // In production, this would call a payment gateway
-        orderService.transitionOrder(
-                java.util.UUID.fromString(event.getOrderId()),
+        java.util.UUID orderId = java.util.UUID.fromString(event.getOrderId());
+
+        // Step 1: CREATED → PAYMENT_PENDING
+        orderService.transitionOrder(orderId,
+                OrderStatus.PAYMENT_PENDING,
+                EventType.ORDER_PAYMENT_PENDING);
+
+        // Step 2: PAYMENT_PENDING → PAID
+        orderService.transitionOrder(orderId,
                 OrderStatus.PAID,
-                EventType.ORDER_PAID
-        );
+                EventType.ORDER_PAID);
 
         log.info("Payment successful for order: orderId={}", event.getOrderId());
     }
