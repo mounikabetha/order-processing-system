@@ -4,29 +4,37 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @Configuration
-public class RateLimitConfig {
+@RequiredArgsConstructor
+@ConditionalOnBean(StringRedisTemplate.class)
+public class RateLimitConfig implements WebMvcConfigurer {
 
-    @Bean
-    public RateLimitInterceptor rateLimitInterceptor(StringRedisTemplate redisTemplate) {
-        return new RateLimitInterceptor(redisTemplate);
+    private final StringRedisTemplate redisTemplate;
+
+    private static final int MAX_REQUESTS = 50;
+    private static final Duration WINDOW = Duration.ofMinutes(1);
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new RateLimitInterceptor(redisTemplate))
+                .addPathPatterns("/api/**")
+                .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");
     }
 
     @Slf4j
     @RequiredArgsConstructor
-    public static class RateLimitInterceptor implements HandlerInterceptor {
-
-        private static final int MAX_REQUESTS = 50;
-        private static final Duration WINDOW = Duration.ofMinutes(1);
+    static class RateLimitInterceptor implements HandlerInterceptor {
 
         private final StringRedisTemplate redisTemplate;
 
@@ -43,7 +51,6 @@ public class RateLimitConfig {
                 redisTemplate.expire(key, WINDOW.toSeconds(), TimeUnit.SECONDS);
             }
 
-            // Add rate limit headers
             response.setHeader("X-RateLimit-Limit", String.valueOf(MAX_REQUESTS));
             long remaining = Math.max(0, MAX_REQUESTS - (currentCount != null ? currentCount : 0));
             response.setHeader("X-RateLimit-Remaining", String.valueOf(remaining));

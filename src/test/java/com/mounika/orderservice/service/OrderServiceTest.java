@@ -33,7 +33,8 @@ class OrderServiceTest {
 
     @Mock private OrderRepository orderRepository;
     @Mock private OutboxEventRepository outboxEventRepository;
-    @Spy  private ObjectMapper objectMapper = new ObjectMapper();
+    @Spy private ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
 
     @InjectMocks private OrderService orderService;
 
